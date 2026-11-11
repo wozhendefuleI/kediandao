@@ -1,0 +1,36 @@
+# ---- 开发内部文件（不公开）----
+.ai-memory/
+docs/基线差异台账.md
+
+# ---- Flutter / Dart 标准 ----
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+generated_plugin_registrant.dart
+
+# ---- Android ----
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/*.keystore
+android/app/*.jks
+*.apk
+*.aab
+gradle-wrapper.jar
+/.gradle
+/captures
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# ---- 杂项 ----
+.DS_Store
+Thumbs.db
+*.log

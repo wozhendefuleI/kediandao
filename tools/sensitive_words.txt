@@ -1,0 +1,19 @@
+# 敏感词扫描清单 v4（2026-11-06）
+# 格式：每行一个正则（Python re）。# 开头为注释。
+# push 公开仓库前必须 python tools/sensitive_scan.py 零命中。
+# 命中处置：立即从 git 历史评估泄漏面；B1 模式下未 push 则直接改+重扫。
+蔡鑫峰
+蔡老师
+卓立
+6HQ0226409030495
+8BBUT26815024650
+HOP-AL00
+VOL-AL00
+134\.175\.
+wozhendefule
+guizhiccc1218
+encrypt_sign_pwd
+0000001[Aa]7
+C:\\Users
+6917612244466088799
+8865bb
