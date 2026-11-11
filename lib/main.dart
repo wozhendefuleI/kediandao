@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme/v9_tokens.dart';
+import 'version.dart' show kVersionMark;
+import 'views/checkin_view.dart';
 
-/// 版本标记对质串（纪律7：模拟器看到 = 已实装）
-const String kVersionMark = 'android-dev M1 v1';
+/// 版本标记对质串（纪律7：模拟器看到 = 已实装）— 单源已迁至 lib/version.dart
 
 void main() {
   runApp(const V9App());
@@ -53,7 +54,7 @@ class _V9HomePageState extends State<V9HomePage> {
 
   /// 三视图保活（对齐 V9Home IndexedStack 语义）
   final List<Widget> _views = const [
-    _CheckinView(),
+    CheckinView(),
     _StatsView(),
     _MeView(),
   ];
@@ -131,19 +132,7 @@ class _V9HomePageState extends State<V9HomePage> {
   }
 }
 
-// ── M1 占位三视图（M1-③④⑤ 逐个替换为全实现）──────────────────
-
-class _CheckinView extends StatelessWidget {
-  const _CheckinView();
-
-  @override
-  Widget build(BuildContext context) {
-    return _PlaceholderPage(
-      title: '点名',
-      hint: 'M1-③ 待实现：日期条 / 进度卡 / 学生卡 / 完成 CTA',
-    );
-  }
-}
+// ── M1 占位视图（统计/我的；点名页已实装 lib/views/checkin_view.dart）──
 
 class _StatsView extends StatelessWidget {
   const _StatsView();
