@@ -1,121 +1,226 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'theme/v9_tokens.dart';
+
+/// 版本标记对质串（纪律7：模拟器看到 = 已实装）
+const String kVersionMark = 'android-dev M1 v1';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const V9App());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+/// M1 骨架：暗夜葡萄默认 + 三 Tab 保活挂载
+/// 对齐鸿蒙 V9Home 语义：IndexedStack 保活 + 底部悬浮胶囊导航（降级实色）。
+/// 主题三模式（light/system）随「我的-外观」在 M4 落地，M1 先钉 dark。
+class V9App extends StatelessWidget {
+  const V9App({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: '课点到',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: V9G.bgFlat(true),
+        colorScheme: const ColorScheme.dark(
+          primary: V9Dark.act2,
+          secondary: V9Dark.act,
+          surface: V9Dark.surfCardSolid,
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const V9HomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class V9HomePage extends StatefulWidget {
+  const V9HomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<V9HomePage> createState() => _V9HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _V9HomePageState extends State<V9HomePage> {
+  int _tab = 0; // 0 点名 1 统计 2 我的
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  static const List<({IconData icon, String label})> _tabs = [
+    (icon: Icons.radio_button_checked, label: '点名'),
+    (icon: Icons.bar_chart, label: '统计'),
+    (icon: Icons.person, label: '我的'),
+  ];
+
+  /// 三视图保活（对齐 V9Home IndexedStack 语义）
+  final List<Widget> _views = const [
+    _CheckinView(),
+    _StatsView(),
+    _MeView(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light, // 暗底白字状态栏
+      child: Scaffold(
+        backgroundColor: V9G.bgFlat(true),
+        body: IndexedStack(index: _tab, children: _views),
+        bottomNavigationBar: _buildPillBar(),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+    );
+  }
+
+  /// 悬浮胶囊底栏（降级实色版：surfNavSolid 实底 + 渐变选中指示）
+  /// 鸿蒙对照：ptab 悬浮胶囊 + V9G.tab(dark) 渐变指示
+  Widget _buildPillBar() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(48, 0, 48, 16),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: V9Dark.surfNavSolid,
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: V9Dark.bdSoft),
+        ),
+        child: Row(
           children: [
-            const Text('You have pushed the button this many times:'),
+            for (int i = 0; i < _tabs.length; i++)
+              Expanded(child: _buildTabItem(i)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabItem(int i) {
+    final selected = _tab == i;
+    final t = _tabs[i];
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _tab = i),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          gradient: selected
+              ? LinearGradient(colors: V9G.tabColors(true))
+              : null,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(t.icon,
+                size: 20,
+                color: selected ? Colors.white : V9Dark.ink45),
+            const SizedBox(height: 2),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              t.label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected ? Colors.white : V9Dark.ink45,
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+    );
+  }
+}
+
+// ── M1 占位三视图（M1-③④⑤ 逐个替换为全实现）──────────────────
+
+class _CheckinView extends StatelessWidget {
+  const _CheckinView();
+
+  @override
+  Widget build(BuildContext context) {
+    return _PlaceholderPage(
+      title: '点名',
+      hint: 'M1-③ 待实现：日期条 / 进度卡 / 学生卡 / 完成 CTA',
+    );
+  }
+}
+
+class _StatsView extends StatelessWidget {
+  const _StatsView();
+
+  @override
+  Widget build(BuildContext context) {
+    return _PlaceholderPage(
+      title: '统计',
+      hint: 'M1-⑤ 待实现：本月统计 / 记录详情',
+    );
+  }
+}
+
+class _MeView extends StatelessWidget {
+  const _MeView();
+
+  @override
+  Widget build(BuildContext context) {
+    return _PlaceholderPage(
+      title: '我的',
+      hint: 'M1-④ 待实现：班级切换 / 数据管理 / 外观',
+    );
+  }
+}
+
+class _PlaceholderPage extends StatelessWidget {
+  final String title;
+  final String hint;
+  const _PlaceholderPage({required this.title, required this.hint});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: V9Dark.ink)),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: V9Dark.tint,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(kVersionMark,
+                      style:
+                          TextStyle(fontSize: 11, color: V9Dark.ink60)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: V9Dark.surfCardSolid, // 降级实色卡片
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: V9Dark.bdSoft),
+                ),
+                child: Text(hint,
+                    style: const TextStyle(
+                        fontSize: 13, color: V9Dark.ink45, height: 1.6)),
+              ),
+            ),
+            const SizedBox(height: 88), // 给胶囊底栏让位
+          ],
+        ),
       ),
     );
   }
