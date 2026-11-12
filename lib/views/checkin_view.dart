@@ -78,6 +78,146 @@ class _CheckinViewState extends State<CheckinView> {
     });
   }
 
+  // ── 添加学生（v1.1.0 StudentFormSheet 简化版：姓名/类型/课时，落引擎+落盘）──
+  Future<void> _showAddStudent() async {
+    final nameCtl = TextEditingController();
+    final totalCtl = TextEditingController(text: '30');
+    final usedCtl = TextEditingController(text: '0');
+    String payType = 'semester';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          backgroundColor: V9Dark.surfCardSolid,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('添加学生',
+              style:
+                  TextStyle(color: V9Dark.ink, fontWeight: FontWeight.w700)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+              controller: nameCtl,
+              autofocus: true,
+              style: const TextStyle(fontSize: 15, color: V9Dark.ink),
+              decoration: const InputDecoration(
+                labelText: '姓名',
+                labelStyle: TextStyle(color: V9Dark.ink45, fontSize: 13),
+                enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: V9Dark.bdSoft)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(children: [
+              const Text('类型',
+                  style: TextStyle(fontSize: 13, color: V9Dark.ink45)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Row(children: [
+                  for (final (v, label) in [
+                    ('semester', '学期'),
+                    ('monthly', '月结'),
+                  ])
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setD(() => payType = v),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            gradient: payType == v
+                                ? LinearGradient(
+                                    colors: V9G.segColors(true))
+                                : null,
+                            color: payType == v
+                                ? null
+                                : V9Dark.surfTrack,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(label,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: payType == v
+                                      ? Colors.white
+                                      : V9Dark.ink45,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ),
+                ]),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            if (payType == 'semester')
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: totalCtl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(
+                        fontSize: 15, color: V9Dark.ink),
+                    decoration: const InputDecoration(
+                      labelText: '总课时',
+                      labelStyle:
+                          TextStyle(color: V9Dark.ink45, fontSize: 13),
+                      enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: V9Dark.bdSoft)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: usedCtl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(
+                        fontSize: 15, color: V9Dark.ink),
+                    decoration: const InputDecoration(
+                      labelText: '已用课时',
+                      labelStyle:
+                          TextStyle(color: V9Dark.ink45, fontSize: 13),
+                      enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: V9Dark.bdSoft)),
+                    ),
+                  ),
+                ),
+              ])
+            else
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('月结：课时由打卡自动累计',
+                    style: TextStyle(fontSize: 12, color: V9Dark.ink45)),
+              ),
+          ]),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child:
+                  const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: V9Dark.act2),
+              child: const Text('添加'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+    final name = nameCtl.text.trim();
+    if (name.isEmpty) {
+      _toast('姓名不能为空', ok: false);
+      return;
+    }
+    final total = double.tryParse(totalCtl.text) ?? 30;
+    final used = double.tryParse(usedCtl.text) ?? 0;
+    eng.addStudent(name, eng.className, payType, total, used);
+    final ok = await Store.I.persist(eng);
+    _toast(ok ? '已添加「$name」' : '已添加，但落盘失败', ok: ok);
+  }
+
   // ── 删除学生（v1.1.0 功能；口径 §2.3 连带清记录；先确认后删 + 即时落盘）──
   Future<void> _confirmDelete(Student s) async {
     final confirmed = await showDialog<bool>(
@@ -456,6 +596,22 @@ class _CheckinViewState extends State<CheckinView> {
                 fontSize: 13,
                 color: V9Dark.ink45,
                 fontWeight: FontWeight.w600)),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: _showAddStudent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: V9Dark.tint,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text('+ 添加',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: V9Dark.act2,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ),
         const SizedBox(height: 8),
         if (todo.isEmpty)
           Container(

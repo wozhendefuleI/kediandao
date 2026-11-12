@@ -76,6 +76,54 @@ class _MeViewState extends State<MeView> {
     return '${n.year}${two(n.month)}${two(n.day)}_${two(n.hour)}${two(n.minute)}';
   }
 
+  // ── 从备份文件还原（v1.1.0 功能：选 JSON → 校验 app 标签 → 确认覆盖 → 全量重建）──
+  Future<void> _restoreFromBackupFile() async {
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+    final text = utf8.decode(bytes, allowMalformed: true);
+    // 先校验再确认（不合法的文件不值得吓用户一次）
+    final probe = CheckInEngine.I;
+    if (Store.decodeToEngine(text, probe) == null) {
+      _toast('不是有效的课点到备份文件', ok: false);
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: V9Dark.surfCardSolid,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('从备份还原',
+            style: TextStyle(color: V9Dark.warn, fontWeight: FontWeight.w700)),
+        content: Text(
+          '将用「${picked.name}」覆盖当前全部数据。\n还原前会自动生成快照。',
+          style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: V9Dark.warn),
+            child: const Text('确认还原'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    final err = await Store.I.restoreFromText(text, CheckInEngine.I);
+    _toast(err == null ? '已从备份还原' : '还原失败：$err', ok: err == null);
+    await _refreshSnaps();
+    if (mounted) setState(() => _busy = false);
+  }
+
   // ── 导入课时表（口径 4.4：应用语义在引擎；此处只做文件读取/预览/重名询问/快照）──
   Future<_ImportResult?> _importRoster() async {
     final picked = await FilePicker.pickFile(
@@ -343,6 +391,12 @@ class _MeViewState extends State<MeView> {
                       : '从最近快照还原（${_snapshots.length} 份可用）',
                   onTap:
                       _snapshots.isEmpty ? null : _restoreLatestSnapshot,
+                  danger: true,
+                ),
+                _MenuItem(
+                  icon: Icons.folder_open,
+                  label: '从备份文件还原（JSON）',
+                  onTap: _restoreFromBackupFile,
                   danger: true,
                 ),
               ]),
