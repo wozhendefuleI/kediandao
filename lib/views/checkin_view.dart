@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' show min;
 import '../engine/checkin_engine.dart';
+import '../engine/store.dart';
 import '../theme/v9_tokens.dart';
 import '../version.dart' show kVersionMark;
 
@@ -68,7 +69,11 @@ class _CheckinViewState extends State<CheckinView> {
   @override
   void initState() {
     super.initState();
-    eng.seedDemo();
+    // M2 启动链：先装载存档（失败/不存在→种子数据兜底），纪律2：装载不阻塞 UI
+    Store.I.load(eng).then((loaded) {
+      if (!loaded) eng.seedDemo();
+      if (mounted) setState(() {});
+    });
   }
 
   // ── 口径 §2.4 全选/反选：批量落引擎，过滤时只动命中项 ──
@@ -133,12 +138,14 @@ class _CheckinViewState extends State<CheckinView> {
     );
     if (confirmed != true) return;
     setState(() => saving = true);
-    // TODO(M2): await eng.persist() —— await 成功才清脏标记（纪律1）
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    // 纪律1：await 落盘成功才算完成；失败保留内存态 + toast（P1-6 教训）
+    final ok = await Store.I.persist(eng);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('已记录 $_doneCount 人到课（M1 内存版，M2 接持久化）'),
-        backgroundColor: V9Dark.toastBg,
+        content: Text(ok
+            ? '已保存：$_doneCount 人到课'
+            : '保存失败，请重试（内存数据未丢失）'),
+        backgroundColor: ok ? V9Dark.saveBg : V9Dark.toastBg,
         behavior: SnackBarBehavior.floating,
       ));
     }

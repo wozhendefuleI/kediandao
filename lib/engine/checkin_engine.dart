@@ -7,6 +7,15 @@
 
 import 'package:flutter/foundation.dart';
 
+/// 导入结果统计（toast 文案与鸿蒙同构：「新增 X 人，更新 Y 人」）
+class ImportResult {
+  final int added;
+  final int updated;
+  final int skipped;
+  const ImportResult(
+      {required this.added, required this.updated, this.skipped = 0});
+}
+
 /// 口径 §0：Student（字段与鸿蒙 v1.1.10 一一同名对应）
 class Student {
   int id;
@@ -155,7 +164,7 @@ class CheckInEngine extends ChangeNotifier {
       .toSet()
       .length;
 
-  // ── 口径 §2.3 删除连带：records 级联清（ID 永不复用，counter 只增）──
+  /// 口径 §2.3 删除连带：records 级联清（ID 永不复用，counter 只增）──
   bool deleteStudent(int studentId) {
     final idx = students.indexWhere((s) => s.id == studentId);
     if (idx < 0) return false;
@@ -163,6 +172,72 @@ class CheckInEngine extends ChangeNotifier {
     records.removeWhere((r) => r.studentId == studentId);
     notifyListeners();
     return true;
+  }
+
+  // ── 口径 §4.4 导入应用（MeView confirmImport L995-1021 直译）──
+
+  /// 按**姓名**匹配：更新路径 payType 必写、仅 semester 覆写三课时（**月结三课时永不覆写**，
+  /// v1.0.20 P2-2 红线）；新增路径 counter 递增、className 缺失回退当前班名。
+  /// [matrix] 为 xlsx 课时表矩阵（首行表头）；[skipConflicts] 对应「取消新建」。
+  ImportResult applyRosterImport(List<List<String>> matrix,
+      {bool skipConflicts = false}) {
+    int added = 0, updated = 0, skipped = 0;
+    // 文件内重名检测（第二次出现的名字标记为冲突）
+    final seenInFile = <String>{};
+    final conflictNames = <String>{};
+    for (final row in matrix.skip(1)) {
+      final name = row.length > 1 ? row[1].trim() : '';
+      if (name.isEmpty) continue;
+      if (!seenInFile.add(name)) conflictNames.add(name);
+    }
+    String col(List<String> row, int i) =>
+        i < row.length ? row[i].trim() : '';
+    for (final row in matrix.skip(1)) {
+      final name = col(row, 1);
+      if (name.isEmpty) continue;
+      if (conflictNames.contains(name) && skipConflicts) {
+        skipped++;
+        continue;
+      }
+      final typeStr = col(row, 2);
+      final payType = typeStr == '月结' ? 'monthly' : 'semester';
+      final total = double.tryParse(col(row, 16)) ?? 0;
+      final used = double.tryParse(col(row, 17)) ?? 0;
+      final existIdx = students.indexWhere((s) => s.name == name);
+      if (existIdx >= 0) {
+        // 更新路径（红线区）
+        final s = students[existIdx];
+        s.payType = payType; // 必写
+        if (payType == 'semester') {
+          s.totalHours = total;
+          s.usedHours = used;
+          s.remainingHours = total - used > 0 ? total - used : 0;
+        }
+        // monthly：三课时一概不动
+        updated++;
+      } else {
+        // 新增路径：counter 递增（先 max 守卫再 ++，v29.14 同构）
+        int maxId = 0;
+        for (final s in students) {
+          if (s.id > maxId) maxId = s.id;
+        }
+        if (studentIdCounter <= maxId) studentIdCounter = maxId;
+        studentIdCounter++;
+        final s = Student(
+          id: studentIdCounter,
+          name: name,
+          className: col(row, 3).isEmpty ? className : col(row, 3),
+          payType: payType,
+          totalHours: total,
+          usedHours: used,
+          remainingHours: total - used > 0 ? total - used : 0,
+        );
+        students.add(s);
+        added++;
+      }
+    }
+    notifyListeners();
+    return ImportResult(added: added, updated: updated, skipped: skipped);
   }
 
   /// 口径 §2.4 v29.14 自愈：重复 id 后出现者重派，其记录按名字顺延重挂，counter 推最大
