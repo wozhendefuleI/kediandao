@@ -176,6 +176,36 @@ class CheckInEngine extends ChangeNotifier {
 
   // ── 口径 §4.4 导入应用（MeView confirmImport L995-1021 直译）──
 
+  /// 口径 §4.4 导入计划（预览与文件内重名检测；与 applyRosterImport 同一匹配规则）
+  /// 返回 {文件内重名集合, 将新增, 将更新, 将跳过}
+  ({Set<String> fileDups, int added, int updated, int skipped}) rosterPlan(
+      List<List<String>> matrix, {bool skipConflicts = false}) {
+    final seenInFile = <String>{};
+    final fileDups = <String>{};
+    for (final row in matrix.skip(1)) {
+      final name = row.length > 1 ? row[1].trim() : '';
+      if (name.isEmpty) continue;
+      if (!seenInFile.add(name)) fileDups.add(name);
+    }
+    int added = 0, updated = 0, skipped = 0;
+    final existNames = students.map((s) => s.name).toSet();
+    String col(List<String> row, int i) => i < row.length ? row[i].trim() : '';
+    for (final row in matrix.skip(1)) {
+      final name = col(row, 1);
+      if (name.isEmpty) continue;
+      if (fileDups.contains(name) && skipConflicts) {
+        skipped++;
+        continue;
+      }
+      if (existNames.contains(name)) {
+        updated++;
+      } else {
+        added++;
+      }
+    }
+    return (fileDups: fileDups, added: added, updated: updated, skipped: skipped);
+  }
+
   /// 按**姓名**匹配：更新路径 payType 必写、仅 semester 覆写三课时（**月结三课时永不覆写**，
   /// v1.0.20 P2-2 红线）；新增路径 counter 递增、className 缺失回退当前班名。
   /// [matrix] 为 xlsx 课时表矩阵（首行表头）；[skipConflicts] 对应「取消新建」。

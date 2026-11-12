@@ -65,6 +65,17 @@ void main() {
     expect(c.id, greaterThan(b.id), reason: 'ID 复用 = v29.14 撞号事故重现');
   });
 
+  test('口径2.3：删除学生连带清除其打卡记录', () {
+    final eng = freshEngine();
+    final s = eng.addStudent('删我', '班', 'semester', 30, 0);
+    eng.checkIn(s.id, '2026-11-12', 1);
+    expect(eng.deleteStudent(s.id), isTrue);
+    expect(eng.students.where((x) => x.id == s.id), isEmpty);
+    expect(eng.records.where((r) => r.studentId == s.id), isEmpty,
+        reason: '孤儿记录 = v1.1.0 前的旧疾');
+    expect(eng.deleteStudent(s.id), isFalse);
+  });
+
   test('口径1.1-1.3：签到/撤销对称回退；月结也累计课时；重复签到拒绝', () {
     final eng = freshEngine();
     final m = eng.addStudent('月结生', '班', 'monthly', 30, 8);

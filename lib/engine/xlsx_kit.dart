@@ -295,6 +295,51 @@ class XlsxKit {
     return matrix;
   }
 
+  /// CSV 解析（课时表的呈现变体，19 列布局同一解析出口——单解析器纪律）
+  /// 支持引号包裹字段与转义引号
+  static List<List<String>> parseCsv(String text) {
+    final rows = <List<String>>[];
+    final field = StringBuffer();
+    final row = <String>[];
+    bool inQuotes = false;
+    for (int i = 0; i < text.length; i++) {
+      final c = text[i];
+      if (inQuotes) {
+        if (c == '"') {
+          if (i + 1 < text.length && text[i + 1] == '"') {
+            field.write('"');
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          field.write(c);
+        }
+      } else {
+        if (c == '"') {
+          inQuotes = true;
+        } else if (c == ',') {
+          row.add(field.toString());
+          field.clear();
+        } else if (c == '\r') {
+          // \r\n 由 \n 处理
+        } else if (c == '\n') {
+          row.add(field.toString());
+          field.clear();
+          rows.add(row);
+          row.clear();
+        } else {
+          field.write(c);
+        }
+      }
+    }
+    if (field.isNotEmpty || row.isNotEmpty) {
+      row.add(field.toString());
+      rows.add(row);
+    }
+    return rows;
+  }
+
   /// 从 xlsx 字节解析矩阵（推荐入口，对齐鸿蒙 unzipSheetBundle）
   /// 返回 null = 非 zip/解包失败/无 sheet
   static List<List<String>>? parseMatrixFromBytes(Uint8List bytes) {

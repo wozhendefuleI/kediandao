@@ -4,7 +4,9 @@
 // （file_picker 导入入口随 M3 打卡流一起实装；此处导出/还原全闭环）
 // ══════════════════════════════════════════════════════════════
 
+import 'dart:convert';
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,6 +15,12 @@ import '../engine/store.dart';
 import '../engine/xlsx_kit.dart';
 import '../theme/v9_tokens.dart';
 import '../version.dart' show kVersionMark;
+
+/// 导入入口（M3）：xlsx/csv 课时表 → 计划预览 → 重名询问 → 快照 → 落库 → 落盘
+class _ImportResult {
+  final int added, updated, skipped;
+  const _ImportResult(this.added, this.updated, this.skipped);
+}
 
 class MeView extends StatefulWidget {
   const MeView({super.key});
@@ -66,6 +74,99 @@ class _MeViewState extends State<MeView> {
     final n = DateTime.now();
     String two(int v) => v.toString().padLeft(2, '0');
     return '${n.year}${two(n.month)}${two(n.day)}_${two(n.hour)}${two(n.minute)}';
+  }
+
+  // ── 导入课时表（口径 4.4：应用语义在引擎；此处只做文件读取/预览/重名询问/快照）──
+  Future<_ImportResult?> _importRoster() async {
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'csv'],
+    );
+    if (picked == null) return null;
+    final name = picked.name;
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return null;
+    List<List<String>>? matrix;
+    if (name.toLowerCase().endsWith('.csv')) {
+      matrix = XlsxKit.parseCsv(utf8.decode(bytes, allowMalformed: true));
+    } else {
+      matrix = XlsxKit.parseMatrixFromBytes(bytes);
+    }
+    if (matrix == null || matrix.length < 2) {
+      _toast('导入失败，请检查文件格式', ok: false);
+      return null;
+    }
+    // 预览（与应用同一匹配规则）
+    final plan = eng.rosterPlan(matrix);
+    bool skipConflicts = false;
+    if (plan.fileDups.isNotEmpty) {
+      final skip = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: V9Dark.surfCardSolid,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('发现重名学生',
+              style:
+                  TextStyle(color: V9Dark.ink, fontWeight: FontWeight.w700)),
+          content: Text(
+            '有 ${plan.fileDups.length} 名学生在文件内重名\n\n'
+            '「跳过重名」：忽略这些学生\n「全部导入」：重名学生也导入',
+            style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('跳过重名',
+                  style: TextStyle(color: V9Dark.warn)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: V9Dark.act2),
+              child: const Text('全部导入'),
+            ),
+          ],
+        ),
+      );
+      if (skip == null) return null; // 用户取消
+      skipConflicts = !skip;
+    }
+    if (!mounted) return null;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: V9Dark.surfCardSolid,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('导入课时',
+            style: TextStyle(color: V9Dark.ink, fontWeight: FontWeight.w700)),
+        content: Text(
+          '解析成功：共 ${matrix!.length - 1} 名学生\n'
+          '将新增 ${plan.added} 人，更新 ${plan.updated} 人'
+          '${plan.skipped > 0 ? '，跳过 ${plan.skipped} 人' : ''}\n\n'
+          '月结学生的已上课时不会被改动。',
+          style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: V9Dark.act2),
+            child: const Text('确定导入'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return null;
+    await Store.I.snapshotBefore(); // 纪律5：导入前快照
+    final r = eng.applyRosterImport(matrix, skipConflicts: skipConflicts);
+    final ok = await Store.I.persist(eng);
+    _toast(ok
+        ? '导入完成：新增 ${r.added} 人，更新 ${r.updated} 人'
+        : '导入完成，但落盘失败', ok: ok);
+    return _ImportResult(r.added, r.updated, r.skipped);
   }
 
   // ── 导出课时表（口径 4.1/4.2：月列=月结次数/套餐加权）──
@@ -231,6 +332,10 @@ class _MeViewState extends State<MeView> {
                     icon: Icons.backup,
                     label: '完整备份（JSON · 含全部记录）',
                     onTap: _exportBackup),
+                _MenuItem(
+                    icon: Icons.upload_file,
+                    label: '导入课时表（Excel / CSV）',
+                    onTap: () => _importRoster()),
                 _MenuItem(
                   icon: Icons.restore,
                   label: _snapshots.isEmpty
@@ -399,15 +504,19 @@ class _MenuItem {
         : danger
             ? V9Dark.warn
             : V9Dark.ink;
-    return ListTile(
-      enabled: enabled,
-      onTap: onTap,
-      leading: Icon(icon, size: 22, color: color),
-      title: Text(label,
-          style: TextStyle(
-              fontSize: 14, color: color, fontWeight: FontWeight.w500)),
-      trailing: Icon(Icons.chevron_right,
-          size: 20, color: V9Dark.ink45.withValues(alpha: 0.5)),
+    // ListTile 需要自己的 Material 承载墨水涟漪（外层 Container 有底色会触发断言）
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        enabled: enabled,
+        onTap: onTap,
+        leading: Icon(icon, size: 22, color: color),
+        title: Text(label,
+            style: TextStyle(
+                fontSize: 14, color: color, fontWeight: FontWeight.w500)),
+        trailing: Icon(Icons.chevron_right,
+            size: 20, color: V9Dark.ink45.withValues(alpha: 0.5)),
+      ),
     );
   }
 }

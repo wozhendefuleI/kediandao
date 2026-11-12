@@ -29,6 +29,7 @@ class _CheckinViewState extends State<CheckinView> {
   double sessionWeight = 1;
   String searchKey = '';
   bool saving = false;
+  int _pressedId = -1; // 签到按压态（M3 动效第一拍：0.97 缩放反馈）
 
   static const _weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
@@ -75,6 +76,47 @@ class _CheckinViewState extends State<CheckinView> {
       eng.notifyRefresh(); // v28.11 同构：保活视图（我的/统计）靠此广播拿到装载数据
       if (mounted) setState(() {});
     });
+  }
+
+  // ── 删除学生（v1.1.0 功能；口径 §2.3 连带清记录；先确认后删 + 即时落盘）──
+  Future<void> _confirmDelete(Student s) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: V9Dark.surfCardSolid,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('删除学生',
+            style: TextStyle(color: V9Dark.warn, fontWeight: FontWeight.w700)),
+        content: Text(
+          '将删除「${s.name}」及其全部打卡记录。\n此操作不可撤销（导入/还原前会自动快照）。',
+          style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: V9Dark.warn),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    eng.deleteStudent(s.id);
+    final ok = await Store.I.persist(eng);
+    _toast(ok ? '已删除「${s.name}」' : '已删除，但落盘失败', ok: ok);
+  }
+
+  void _toast(String msg, {bool ok = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: ok ? V9Dark.saveBg : V9Dark.toastBg,
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   // ── 口径 §2.4 全选/反选：批量落引擎，过滤时只动命中项 ──
@@ -480,8 +522,16 @@ class _CheckinViewState extends State<CheckinView> {
 
   Widget _buildStudentCard(Student s) {
     return GestureDetector(
+      onTapDown: (_) => setState(() => _pressedId = s.id),
+      onTapCancel: () => setState(() => _pressedId = -1),
+      onTapUp: (_) => setState(() => _pressedId = -1),
       onTap: () => eng.checkIn(s.id, _dateStr, sessionWeight),
-      child: Container(
+      onLongPress: () => _confirmDelete(s),
+      child: AnimatedScale(
+        scale: _pressedId == s.id ? 0.97 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -519,6 +569,7 @@ class _CheckinViewState extends State<CheckinView> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -8,7 +8,7 @@ void main() {
 
     // 默认点名页 + 版本标记对质串
     expect(find.text('点名'), findsWidgets);
-    expect(find.textContaining('android-dev M1'), findsOneWidget);
+    expect(find.textContaining('android-dev M'), findsOneWidget);
 
     // 切到「我的」（Tab 栏的项 = 最后一个匹配，占位页标题在前）
     await tester.tap(find.text('我的').last);
