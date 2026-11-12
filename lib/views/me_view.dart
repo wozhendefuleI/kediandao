@@ -14,6 +14,7 @@ import '../engine/checkin_engine.dart';
 import '../engine/store.dart';
 import '../engine/xlsx_kit.dart';
 import '../theme/v9_tokens.dart';
+import '../theme/v9_palette.dart';
 import '../version.dart' show kVersionMark;
 
 /// 导入入口（M3）：xlsx/csv 课时表 → 计划预览 → 重名询问 → 快照 → 落库 → 落盘
@@ -30,6 +31,8 @@ class MeView extends StatefulWidget {
 }
 
 class _MeViewState extends State<MeView> {
+  V9Palette get c => V9ThemeScope.of(context);
+
   final CheckInEngine eng = CheckInEngine.I;
   bool _busy = false;
   List<FileSystemEntity> _snapshots = [];
@@ -57,7 +60,7 @@ class _MeViewState extends State<MeView> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: ok ? V9Dark.saveBg : V9Dark.toastBg,
+      backgroundColor: ok ? c.saveBg : V9Dark.toastBg,
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 3),
     ));
@@ -74,6 +77,99 @@ class _MeViewState extends State<MeView> {
     final n = DateTime.now();
     String two(int v) => v.toString().padLeft(2, '0');
     return '${n.year}${two(n.month)}${two(n.day)}_${two(n.hour)}${two(n.minute)}';
+  }
+
+  // ── 外观三模式（对齐鸿蒙 MeView 外观弹窗：跟随系统/浅色/深色 + 勾选圈）──
+  Future<void> _showThemeSheet() async {
+    final t = ThemeController.I;
+    // 局部 pending：弹窗内不碰控制器（否则 setMode 的等值短路会吞掉持久化+广播）
+    String pending = t.mode;
+    final applied = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final c = V9ThemeScope.of(ctx);
+        return StatefulBuilder(
+          builder: (ctx, setD) => AlertDialog(
+            backgroundColor: c.surfCardSolid,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('外观',
+                style: TextStyle(
+                    color: V9Dark.ink, fontWeight: FontWeight.w700)),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (final (mode, title, sub) in [
+                ('system', '跟随系统', '随系统深浅模式自动切换'),
+                ('light', '浅色', '奶油纸面'),
+                ('dark', '深色', '暗夜葡萄（默认）'),
+              ])
+                InkWell(
+                  onTap: () => setD(() => pending = mode),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 6),
+                    child: Row(children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: pending == mode
+                                  ? LinearGradient(
+                                      colors: V9G.checkColors)
+                                  : null,
+                              border: pending == mode
+                                  ? null
+                                  : Border.all(
+                                      color: c.ink45, width: 1.5),
+                            ),
+                          ),
+                          if (pending == mode)
+                            const Icon(Icons.check,
+                                size: 14, color: Colors.white),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(title,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: c.ink)),
+                            Text(sub,
+                                style: TextStyle(
+                                    fontSize: 11, color: c.ink45)),
+                          ]),
+                    ]),
+                  ),
+                ),
+            ]),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child:
+                    const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, 'apply'),
+                style:
+                    FilledButton.styleFrom(backgroundColor: c.act2),
+                child: const Text('应用'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (applied == 'apply' && pending != t.mode) {
+      await t.setMode(pending); // 持久化 + 全局广播（v28.11 同构语义）
+      _toast('外观已切换');
+    }
   }
 
   // ── 从备份文件还原（v1.1.0 功能：选 JSON → 校验 app 标签 → 确认覆盖 → 全量重建）──
@@ -95,23 +191,23 @@ class _MeViewState extends State<MeView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: V9Dark.surfCardSolid,
+        backgroundColor: c.surfCardSolid,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('从备份还原',
-            style: TextStyle(color: V9Dark.warn, fontWeight: FontWeight.w700)),
+        title: Text('从备份还原',
+            style: TextStyle(color: c.warn, fontWeight: FontWeight.w700)),
         content: Text(
           '将用「${picked.name}」覆盖当前全部数据。\n还原前会自动生成快照。',
-          style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+          style: TextStyle(color: c.ink60, height: 1.7),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+            child: Text('取消', style: TextStyle(color: c.ink45)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: V9Dark.warn),
-            child: const Text('确认还原'),
+            style: FilledButton.styleFrom(backgroundColor: c.warn),
+            child: Text('确认还原'),
           ),
         ],
       ),
@@ -151,27 +247,27 @@ class _MeViewState extends State<MeView> {
       final skip = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: V9Dark.surfCardSolid,
+          backgroundColor: c.surfCardSolid,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('发现重名学生',
+          title: Text('发现重名学生',
               style:
-                  TextStyle(color: V9Dark.ink, fontWeight: FontWeight.w700)),
+                  TextStyle(color: c.ink, fontWeight: FontWeight.w700)),
           content: Text(
             '有 ${plan.fileDups.length} 名学生在文件内重名\n\n'
             '「跳过重名」：忽略这些学生\n「全部导入」：重名学生也导入',
-            style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+            style: TextStyle(color: c.ink60, height: 1.7),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('跳过重名',
-                  style: TextStyle(color: V9Dark.warn)),
+              child: Text('跳过重名',
+                  style: TextStyle(color: c.warn)),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(backgroundColor: V9Dark.act2),
-              child: const Text('全部导入'),
+              style: FilledButton.styleFrom(backgroundColor: c.act2),
+              child: Text('全部导入'),
             ),
           ],
         ),
@@ -183,26 +279,26 @@ class _MeViewState extends State<MeView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: V9Dark.surfCardSolid,
+        backgroundColor: c.surfCardSolid,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('导入课时',
-            style: TextStyle(color: V9Dark.ink, fontWeight: FontWeight.w700)),
+        title: Text('导入课时',
+            style: TextStyle(color: c.ink, fontWeight: FontWeight.w700)),
         content: Text(
           '解析成功：共 ${matrix!.length - 1} 名学生\n'
           '将新增 ${plan.added} 人，更新 ${plan.updated} 人'
           '${plan.skipped > 0 ? '，跳过 ${plan.skipped} 人' : ''}\n\n'
           '月结学生的已上课时不会被改动。',
-          style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+          style: TextStyle(color: c.ink60, height: 1.7),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+            child: Text('取消', style: TextStyle(color: c.ink45)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: V9Dark.act2),
-            child: const Text('确定导入'),
+            style: FilledButton.styleFrom(backgroundColor: c.act2),
+            child: Text('确定导入'),
           ),
         ],
       ),
@@ -314,24 +410,24 @@ class _MeViewState extends State<MeView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: V9Dark.surfCardSolid,
+        backgroundColor: c.surfCardSolid,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('从快照还原',
-            style: TextStyle(color: V9Dark.ink, fontWeight: FontWeight.w700)),
+        title: Text('从快照还原',
+            style: TextStyle(color: c.ink, fontWeight: FontWeight.w700)),
         content: Text(
           '将用快照覆盖当前全部数据：\n$name\n\n当前未保存的改动会丢失。',
-          style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+          style: TextStyle(color: c.ink60, height: 1.7),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child:
-                const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+                Text('取消', style: TextStyle(color: c.ink45)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: V9Dark.act2),
-            child: const Text('确认还原'),
+            style: FilledButton.styleFrom(backgroundColor: c.act2),
+            child: Text('确认还原'),
           ),
         ],
       ),
@@ -355,17 +451,17 @@ class _MeViewState extends State<MeView> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: c.dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: ListenableBuilder(
         listenable: eng,
         builder: (context, _) => SafeArea(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 120),
             children: [
               _header(),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _classCard(),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _sectionTitle('数据管理'),
               _menuCard([
                 _MenuItem(
@@ -400,6 +496,9 @@ class _MeViewState extends State<MeView> {
                   danger: true,
                 ),
               ]),
+              SizedBox(height: 16),
+              _sectionTitle('外观'),
+              _themeCard(),
               const SizedBox(height: 16),
               _sectionTitle('关于'),
               _aboutCard(),
@@ -414,19 +513,19 @@ class _MeViewState extends State<MeView> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text('我的',
+        Text('我的',
             style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
-                color: V9Dark.ink)),
+                color: c.ink)),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: V9Dark.tint,
+            color: c.tint,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(kVersionMark,
-              style: const TextStyle(fontSize: 11, color: V9Dark.ink60)),
+              style: TextStyle(fontSize: 11, color: c.ink60)),
         ),
       ],
     );
@@ -435,44 +534,44 @@ class _MeViewState extends State<MeView> {
   Widget _classCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: V9Dark.surfCardSolid,
+        color: c.surfCardSolid,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: V9Dark.bdSoft),
+        border: Border.all(color: c.bdSoft),
       ),
       child: Row(children: [
         Container(
           width: 52,
           height: 52,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: V9Dark.avatarBg,
+            color: c.avatarBg,
           ),
           child: Text(
             eng.className.isEmpty ? '班' : eng.className.substring(0, 1),
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: V9Dark.act2),
+                color: c.act2),
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(eng.className,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: V9Dark.ink)),
-              const SizedBox(height: 4),
+                      color: c.ink)),
+              SizedBox(height: 4),
               Text(
                 '${eng.students.length} 名学生 · ${eng.records.length} 条打卡记录',
                 style:
-                    const TextStyle(fontSize: 13, color: V9Dark.ink45),
+                    TextStyle(fontSize: 13, color: c.ink45),
               ),
             ],
           ),
@@ -483,11 +582,11 @@ class _MeViewState extends State<MeView> {
 
   Widget _sectionTitle(String t) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8),
       child: Text(t,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 13,
-              color: V9Dark.ink45,
+              color: c.ink45,
               fontWeight: FontWeight.w600)),
     );
   }
@@ -495,15 +594,15 @@ class _MeViewState extends State<MeView> {
   Widget _menuCard(List<_MenuItem> items) {
     return Container(
       decoration: BoxDecoration(
-        color: V9Dark.surfCardSolid,
+        color: c.surfCardSolid,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: V9Dark.bdSoft),
+        border: Border.all(color: c.bdSoft),
       ),
       child: Column(
         children: [
           for (int i = 0; i < items.length; i++) ...[
             if (i > 0)
-              const Divider(height: 1, indent: 54, color: V9Dark.bdSoft),
+              Divider(height: 1, indent: 54, color: c.bdSoft),
             items[i].build(context, _busy),
           ],
         ],
@@ -511,27 +610,53 @@ class _MeViewState extends State<MeView> {
     );
   }
 
+  Widget _themeCard() {
+    final t = ThemeController.I;
+    final label = switch (t.mode) {
+      'light' => '浅色 · 奶油纸面',
+      'system' => '跟随系统',
+      _ => '深色 · 暗夜葡萄',
+    };
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: c.surfCardSolid,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.bdSoft),
+      ),
+      child: ListTile(
+        onTap: _showThemeSheet,
+        leading: Icon(Icons.palette_outlined, size: 22, color: c.ink),
+        title: Text('外观',
+            style: TextStyle(
+                fontSize: 14, color: c.ink, fontWeight: FontWeight.w500)),
+        trailing: Text(label,
+            style: TextStyle(fontSize: 12, color: c.ink45)),
+      ),
+    );
+  }
+
   Widget _aboutCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: V9Dark.surfCardSolid,
+        color: c.surfCardSolid,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: V9Dark.bdSoft),
+        border: Border.all(color: c.bdSoft),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('课点到 · Android',
               style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: V9Dark.ink)),
-          SizedBox(height: 6),
+                  color: c.ink)),
+          const SizedBox(height: 6),
           Text(
-            '体育老师的班级点名 / 课时统计工具\n纯本机存储 · 无网络权限 · 无遥测\n开源版将于 M5 发布（MIT License）',
-            style: TextStyle(fontSize: 12, color: V9Dark.ink45, height: 1.7),
+            '体育老师的班级点名 / 课时统计工具\n纯本机存储 · 无网络权限 · 无遥测\n开源版发布（MIT License）',
+            style: TextStyle(fontSize: 12, color: c.ink45, height: 1.7),
           ),
         ],
       ),
@@ -552,12 +677,13 @@ class _MenuItem {
   });
 
   Widget build(BuildContext context, bool busy) {
+    final c = V9ThemeScope.of(context);
     final enabled = onTap != null && !busy;
     final color = !enabled
-        ? V9Dark.ink45.withValues(alpha: 0.4)
+        ? c.ink45.withValues(alpha: 0.4)
         : danger
-            ? V9Dark.warn
-            : V9Dark.ink;
+            ? c.warn
+            : c.ink;
     // ListTile 需要自己的 Material 承载墨水涟漪（外层 Container 有底色会触发断言）
     return Material(
       type: MaterialType.transparency,
@@ -569,7 +695,7 @@ class _MenuItem {
             style: TextStyle(
                 fontSize: 14, color: color, fontWeight: FontWeight.w500)),
         trailing: Icon(Icons.chevron_right,
-            size: 20, color: V9Dark.ink45.withValues(alpha: 0.5)),
+            size: 20, color: c.ink45.withValues(alpha: 0.5)),
       ),
     );
   }

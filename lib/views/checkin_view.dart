@@ -14,6 +14,7 @@ import 'dart:math' show min;
 import '../engine/checkin_engine.dart';
 import '../engine/store.dart';
 import '../theme/v9_tokens.dart';
+import '../theme/v9_palette.dart';
 import '../version.dart' show kVersionMark;
 
 class CheckinView extends StatefulWidget {
@@ -24,6 +25,8 @@ class CheckinView extends StatefulWidget {
 }
 
 class _CheckinViewState extends State<CheckinView> {
+  V9Palette get c => V9ThemeScope.of(context);
+
   final CheckInEngine eng = CheckInEngine.I;
   DateTime selectedDate = DateTime.now();
   double sessionWeight = 1;
@@ -88,29 +91,29 @@ class _CheckinViewState extends State<CheckinView> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          backgroundColor: V9Dark.surfCardSolid,
+          backgroundColor: c.surfCardSolid,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('添加学生',
+          title: Text('添加学生',
               style:
-                  TextStyle(color: V9Dark.ink, fontWeight: FontWeight.w700)),
+                  TextStyle(color: c.ink, fontWeight: FontWeight.w700)),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(
               controller: nameCtl,
               autofocus: true,
-              style: const TextStyle(fontSize: 15, color: V9Dark.ink),
-              decoration: const InputDecoration(
+              style: TextStyle(fontSize: 15, color: c.ink),
+              decoration: InputDecoration(
                 labelText: '姓名',
-                labelStyle: TextStyle(color: V9Dark.ink45, fontSize: 13),
+                labelStyle: TextStyle(color: c.ink45, fontSize: 13),
                 enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: V9Dark.bdSoft)),
+                    borderSide: BorderSide(color: c.bdSoft)),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Row(children: [
-              const Text('类型',
-                  style: TextStyle(fontSize: 13, color: V9Dark.ink45)),
-              const SizedBox(width: 12),
+              Text('类型',
+                  style: TextStyle(fontSize: 13, color: c.ink45)),
+              SizedBox(width: 12),
               Expanded(
                 child: Row(children: [
                   for (final (v, label) in [
@@ -121,17 +124,17 @@ class _CheckinViewState extends State<CheckinView> {
                       child: GestureDetector(
                         onTap: () => setD(() => payType = v),
                         child: Container(
-                          margin: const EdgeInsets.only(right: 8),
+                          margin: EdgeInsets.only(right: 8),
                           padding:
-                              const EdgeInsets.symmetric(vertical: 8),
+                              EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
                             gradient: payType == v
                                 ? LinearGradient(
-                                    colors: V9G.segColors(true))
+                                    colors: V9G.segColors(c.dark))
                                 : null,
                             color: payType == v
                                 ? null
-                                : V9Dark.surfTrack,
+                                : c.surfTrack,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           alignment: Alignment.center,
@@ -140,7 +143,7 @@ class _CheckinViewState extends State<CheckinView> {
                                   fontSize: 13,
                                   color: payType == v
                                       ? Colors.white
-                                      : V9Dark.ink45,
+                                      : c.ink45,
                                   fontWeight: FontWeight.w600)),
                         ),
                       ),
@@ -148,58 +151,58 @@ class _CheckinViewState extends State<CheckinView> {
                 ]),
               ),
             ]),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             if (payType == 'semester')
               Row(children: [
                 Expanded(
                   child: TextField(
                     controller: totalCtl,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(
-                        fontSize: 15, color: V9Dark.ink),
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                        fontSize: 15, color: c.ink),
+                    decoration: InputDecoration(
                       labelText: '总课时',
                       labelStyle:
-                          TextStyle(color: V9Dark.ink45, fontSize: 13),
+                          TextStyle(color: c.ink45, fontSize: 13),
                       enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: V9Dark.bdSoft)),
+                          borderSide: BorderSide(color: c.bdSoft)),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16),
                 Expanded(
                   child: TextField(
                     controller: usedCtl,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(
-                        fontSize: 15, color: V9Dark.ink),
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                        fontSize: 15, color: c.ink),
+                    decoration: InputDecoration(
                       labelText: '已用课时',
                       labelStyle:
-                          TextStyle(color: V9Dark.ink45, fontSize: 13),
+                          TextStyle(color: c.ink45, fontSize: 13),
                       enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: V9Dark.bdSoft)),
+                          borderSide: BorderSide(color: c.bdSoft)),
                     ),
                   ),
                 ),
               ])
             else
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text('月结：课时由打卡自动累计',
-                    style: TextStyle(fontSize: 12, color: V9Dark.ink45)),
+                    style: TextStyle(fontSize: 12, color: c.ink45)),
               ),
           ]),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child:
-                  const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+                  Text('取消', style: TextStyle(color: c.ink45)),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(backgroundColor: V9Dark.act2),
-              child: const Text('添加'),
+              style: FilledButton.styleFrom(backgroundColor: c.act2),
+              child: Text('添加'),
             ),
           ],
         ),
@@ -223,23 +226,23 @@ class _CheckinViewState extends State<CheckinView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: V9Dark.surfCardSolid,
+        backgroundColor: c.surfCardSolid,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('删除学生',
-            style: TextStyle(color: V9Dark.warn, fontWeight: FontWeight.w700)),
+        title: Text('删除学生',
+            style: TextStyle(color: c.warn, fontWeight: FontWeight.w700)),
         content: Text(
           '将删除「${s.name}」及其全部打卡记录。\n此操作不可撤销（导入/还原前会自动快照）。',
-          style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+          style: TextStyle(color: c.ink60, height: 1.7),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+            child: Text('取消', style: TextStyle(color: c.ink45)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: V9Dark.warn),
-            child: const Text('删除'),
+            style: FilledButton.styleFrom(backgroundColor: c.warn),
+            child: Text('删除'),
           ),
         ],
       ),
@@ -254,7 +257,7 @@ class _CheckinViewState extends State<CheckinView> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: ok ? V9Dark.saveBg : V9Dark.toastBg,
+      backgroundColor: ok ? c.saveBg : V9Dark.toastBg,
       behavior: SnackBarBehavior.floating,
     ));
   }
@@ -294,27 +297,27 @@ class _CheckinViewState extends State<CheckinView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: V9Dark.surfCardSolid,
+        backgroundColor: c.surfCardSolid,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('完成本节课签到',
-            style: TextStyle(color: V9Dark.ink, fontWeight: FontWeight.w700)),
+        title: Text('完成本节课签到',
+            style: TextStyle(color: c.ink, fontWeight: FontWeight.w700)),
         content: Text(
           '${eng.className} · $_dateLabel\n到课 $_doneCount / ${eng.students.length} 人\n'
           '本次课时权重 $sessionWeight',
-          style: const TextStyle(color: V9Dark.ink60, height: 1.7),
+          style: TextStyle(color: c.ink60, height: 1.7),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('继续点名',
-                style: TextStyle(color: V9Dark.ink45)),
+            child: Text('继续点名',
+                style: TextStyle(color: c.ink45)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
-              backgroundColor: V9Dark.act2,
+              backgroundColor: c.act2,
             ),
-            child: const Text('确认保存'),
+            child: Text('确认保存'),
           ),
         ],
       ),
@@ -328,7 +331,7 @@ class _CheckinViewState extends State<CheckinView> {
         content: Text(ok
             ? '已保存：$_doneCount 人到课'
             : '保存失败，请重试（内存数据未丢失）'),
-        backgroundColor: ok ? V9Dark.saveBg : V9Dark.toastBg,
+        backgroundColor: ok ? c.saveBg : V9Dark.toastBg,
         behavior: SnackBarBehavior.floating,
       ));
     }
@@ -338,7 +341,7 @@ class _CheckinViewState extends State<CheckinView> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: c.dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: ListenableBuilder(
         listenable: eng,
         builder: (context, _) => SafeArea(
@@ -350,18 +353,18 @@ class _CheckinViewState extends State<CheckinView> {
                   children: [
                     Positioned.fill(
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                        padding: EdgeInsets.fromLTRB(20, 0, 20, 120),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildDateBar(),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             _buildProgressCard(),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             _buildSearchBar(),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             _buildTodoSection(),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             if (_filtered.any(
                                 (s) => eng.isCheckedIn(s.id, _dateStr)))
                               _buildDoneSection(),
@@ -387,23 +390,23 @@ class _CheckinViewState extends State<CheckinView> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(eng.className,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: V9Dark.ink)),
+                  color: c.ink)),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: V9Dark.tint,
+              color: c.tint,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(kVersionMark,
-                style: const TextStyle(fontSize: 11, color: V9Dark.ink60)),
+                style: TextStyle(fontSize: 11, color: c.ink60)),
           ),
         ],
       ),
@@ -417,37 +420,37 @@ class _CheckinViewState extends State<CheckinView> {
           onTap: _pickDate,
           child: Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: V9Dark.dfBg,
+              color: c.dfBg,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(children: [
-              const Icon(Icons.event, size: 16, color: V9Dark.act),
-              const SizedBox(width: 6),
+              Icon(Icons.event, size: 16, color: c.act),
+              SizedBox(width: 6),
               Text(_dateLabel,
-                  style: const TextStyle(
-                      fontSize: 14, color: V9Dark.ink)),
-              const SizedBox(width: 4),
-              const Icon(Icons.keyboard_arrow_down,
-                  size: 16, color: V9Dark.ink45),
+                  style: TextStyle(
+                      fontSize: 14, color: c.ink)),
+              SizedBox(width: 4),
+              Icon(Icons.keyboard_arrow_down,
+                  size: 16, color: c.ink45),
             ]),
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         if (!_isToday)
           GestureDetector(
             onTap: () =>
                 setState(() => selectedDate = DateTime.now()),
             child: Container(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: V9Dark.tint,
+                color: c.tint,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Text('回到今天',
-                  style: TextStyle(fontSize: 13, color: V9Dark.act2)),
+              child: Text('回到今天',
+                  style: TextStyle(fontSize: 13, color: c.act2)),
             ),
           ),
         const Spacer(),
@@ -457,13 +460,13 @@ class _CheckinViewState extends State<CheckinView> {
           },
           child: Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: V9G.segColors(true)),
+              gradient: LinearGradient(colors: V9G.segColors(c.dark)),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Text('$sessionWeight 课时',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     color: Colors.white,
                     fontWeight: FontWeight.w600)),
@@ -476,11 +479,11 @@ class _CheckinViewState extends State<CheckinView> {
   Widget _buildProgressCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: V9Dark.surfCardSolid,
+        color: c.surfCardSolid,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: V9Dark.bdSoft),
+        border: Border.all(color: c.bdSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,22 +492,22 @@ class _CheckinViewState extends State<CheckinView> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text('$_doneCount',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w700,
-                      color: V9Dark.ink)),
+                      color: c.ink)),
               Text(' / ${eng.students.length} 人已到',
-                  style: const TextStyle(
-                      fontSize: 14, color: V9Dark.ink45)),
+                  style: TextStyle(
+                      fontSize: 14, color: c.ink45)),
               const Spacer(),
               Text('$_pctInt%',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      color: V9Dark.act2)),
+                      color: c.act2)),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: TweenAnimationBuilder<double>(
@@ -514,9 +517,9 @@ class _CheckinViewState extends State<CheckinView> {
               builder: (ctx, v, _) => LinearProgressIndicator(
                 value: v,
                 minHeight: 6,
-                backgroundColor: V9Dark.surfTrack,
+                backgroundColor: c.surfTrack,
                 valueColor: AlwaysStoppedAnimation(
-                    V9G.finishColors(true).last),
+                    V9G.finishColors(c.dark).last),
               ),
             ),
           ),
@@ -531,23 +534,23 @@ class _CheckinViewState extends State<CheckinView> {
         Expanded(
           child: Container(
             height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: V9Dark.searchBg,
+              color: c.searchBg,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(children: [
-              const Icon(Icons.search, size: 18, color: V9Dark.ink45),
-              const SizedBox(width: 8),
+              Icon(Icons.search, size: 18, color: c.ink45),
+              SizedBox(width: 8),
               Expanded(
                 child: TextField(
-                  style: const TextStyle(
-                      fontSize: 14, color: V9Dark.ink),
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                      fontSize: 14, color: c.ink),
+                  decoration: InputDecoration(
                     isDense: true,
                     border: InputBorder.none,
                     hintText: '搜索学生',
-                    hintStyle: TextStyle(color: V9Dark.ink45),
+                    hintStyle: TextStyle(color: c.ink45),
                   ),
                   onChanged: (v) => setState(() => searchKey = v),
                 ),
@@ -555,27 +558,27 @@ class _CheckinViewState extends State<CheckinView> {
               if (searchKey.isNotEmpty)
                 GestureDetector(
                   onTap: () => setState(() => searchKey = ''),
-                  child: const Icon(Icons.close,
-                      size: 16, color: V9Dark.ink45),
+                  child: Icon(Icons.close,
+                      size: 16, color: c.ink45),
                 ),
             ]),
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         GestureDetector(
           onTap: _toggleSelectAll,
           child: Container(
             height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: V9Dark.tint,
+              color: c.tint,
               borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
             child: Text(_allSelected ? '反选' : '全选',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
-                    color: V9Dark.act2,
+                    color: c.act2,
                     fontWeight: FontWeight.w600)),
           ),
         ),
@@ -592,38 +595,38 @@ class _CheckinViewState extends State<CheckinView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('待到 ${todo.length}',
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 13,
-                color: V9Dark.ink45,
+                color: c.ink45,
                 fontWeight: FontWeight.w600)),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         GestureDetector(
           onTap: _showAddStudent,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: V9Dark.tint,
+              color: c.tint,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text('+ 添加',
+            child: Text('+ 添加',
                 style: TextStyle(
                     fontSize: 12,
-                    color: V9Dark.act2,
+                    color: c.act2,
                     fontWeight: FontWeight.w600)),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         if (todo.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: V9Dark.surfCardSolid,
+              color: c.surfCardSolid,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Text('全部到齐',
+            child: Text('全部到齐',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: V9Dark.ink45, fontSize: 14)),
+                style: TextStyle(color: c.ink45, fontSize: 14)),
           )
         else
           ...todo.map(_buildStudentCard),
@@ -640,11 +643,11 @@ class _CheckinViewState extends State<CheckinView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('已到 ${done.length}',
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 13,
-                color: V9Dark.act2,
+                color: c.act2,
                 fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -653,20 +656,20 @@ class _CheckinViewState extends State<CheckinView> {
                     onTap: () =>
                         eng.uncheckIn(s.id, _dateStr, sessionWeight),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: V9Dark.tint,
+                        color: c.tint,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: V9Dark.saveBd),
+                        border: Border.all(color: c.saveBd),
                       ),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.check_circle,
-                            size: 14, color: V9Dark.act2),
-                        const SizedBox(width: 6),
+                        Icon(Icons.check_circle,
+                            size: 14, color: c.act2),
+                        SizedBox(width: 6),
                         Text(s.name,
-                            style: const TextStyle(
-                                fontSize: 13, color: V9Dark.ink)),
+                            style: TextStyle(
+                                fontSize: 13, color: c.ink)),
                       ]),
                     ),
                   ))
@@ -689,12 +692,12 @@ class _CheckinViewState extends State<CheckinView> {
         curve: Curves.easeOut,
         child: Container(
         width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: V9Dark.surfCardSolid,
+          color: c.surfCardSolid,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: V9Dark.bdSoft),
+          border: Border.all(color: c.bdSoft),
         ),
         child: Row(
           children: [
@@ -704,23 +707,23 @@ class _CheckinViewState extends State<CheckinView> {
               height: 26,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: V9Dark.act2, width: 2),
+                border: Border.all(color: c.act2, width: 2),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(s.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: V9Dark.ink)),
-                  const SizedBox(height: 3),
+                          color: c.ink)),
+                  SizedBox(height: 3),
                   Text(_metaCore(s),
-                      style: const TextStyle(
-                          fontSize: 12, color: V9Dark.ink45)),
+                      style: TextStyle(
+                          fontSize: 12, color: c.ink45)),
                 ],
               ),
             ),
@@ -746,11 +749,11 @@ class _CheckinViewState extends State<CheckinView> {
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: V9G.finishColors(true)),
+          gradient: LinearGradient(colors: V9G.finishColors(c.dark)),
           borderRadius: BorderRadius.circular(26),
           boxShadow: [
             BoxShadow(
-              color: V9Dark.act2.withValues(alpha: 0.35),
+              color: c.act2.withValues(alpha: 0.35),
               blurRadius: 18,
               offset: const Offset(0, 6),
             ),
@@ -758,14 +761,14 @@ class _CheckinViewState extends State<CheckinView> {
         ),
         alignment: Alignment.center,
         child: saving
-            ? const SizedBox(
+            ? SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: Colors.white),
               )
             : Text('完成本节课签到（$_doneCount/${eng.students.length}）',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),

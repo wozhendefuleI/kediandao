@@ -175,6 +175,27 @@ class Store {
   /// 导出备份 JSON 文本（口径 §5 结构，供分享/存档）
   String backupText(CheckInEngine eng) => jsonEncode(encode(eng));
 
+  // ── 主题模式持久化（KEY_THEME_MODE 同构）──
+  static const String _themeKey = 'theme_mode';
+
+  Future<String?> loadThemeMode() async {
+    try {
+      final f = File('${await _dir()}/$_themeKey.txt');
+      if (!f.existsSync()) return null;
+      final v = f.readAsStringSync().trim();
+      return ['dark', 'light', 'system'].contains(v) ? v : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveThemeMode(String mode) async {
+    try {
+      final f = File('${await _dir()}/$_themeKey.txt');
+      await f.writeAsString(mode, flush: true);
+    } catch (_) {}
+  }
+
   /// 从备份文本还原（口径 §5：校验 app 标签 → 全量重建 → 落盘）
   /// 返回错误信息；null = 成功
   Future<String?> restoreFromText(String text, CheckInEngine eng) async {

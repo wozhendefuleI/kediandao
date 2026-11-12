@@ -1,39 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme/v9_tokens.dart';
-import 'version.dart' show kVersionMark;
+import 'theme/v9_palette.dart';
 import 'views/checkin_view.dart';
 import 'views/me_view.dart';
 import 'views/stats_view.dart';
-
-/// 版本标记对质串（纪律7：模拟器看到 = 已实装）— 单源已迁至 lib/version.dart
 
 void main() {
   runApp(const V9App());
 }
 
-/// M1 骨架：暗夜葡萄默认 + 三 Tab 保活挂载
-/// 对齐鸿蒙 V9Home 语义：IndexedStack 保活 + 底部悬浮胶囊导航（降级实色）。
-/// 主题三模式（light/system）随「我的-外观」在 M4 落地，M1 先钉 dark。
+/// 主题三模式挂载：ThemeController(持久化) → V9App 监听 → ThemeScope 下发
+/// 三视图保活（IndexedStack，对齐鸿蒙 V9Home 语义）+ 悬浮胶囊导航。
 class V9App extends StatelessWidget {
   const V9App({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '课点到',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: V9G.bgFlat(true),
-        colorScheme: const ColorScheme.dark(
-          primary: V9Dark.act2,
-          secondary: V9Dark.act,
-          surface: V9Dark.surfCardSolid,
-        ),
-      ),
-      home: const V9HomePage(),
+    final t = ThemeController.I;
+    return ListenableBuilder(
+      listenable: t,
+      builder: (context, _) {
+        final c = t.palette;
+        return V9ThemeScope(
+          palette: c,
+          child: MaterialApp(
+            title: '课点到',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              useMaterial3: true,
+              brightness: c.dark ? Brightness.dark : Brightness.light,
+              scaffoldBackgroundColor: V9G.bgFlat(c.dark),
+              colorScheme: c.dark
+                  ? const ColorScheme.dark(
+                      primary: V9Dark.act2,
+                      secondary: V9Dark.act,
+                      surface: V9Dark.surfCardSolid)
+                  : const ColorScheme.light(
+                      primary: V9Light.act2,
+                      secondary: V9Light.act,
+                      surface: V9Light.surfCardSolid),
+            ),
+            home: const V9HomePage(),
+          ),
+        );
+      },
     );
   }
 }
@@ -45,8 +56,11 @@ class V9HomePage extends StatefulWidget {
   State<V9HomePage> createState() => _V9HomePageState();
 }
 
-class _V9HomePageState extends State<V9HomePage> {
+class _V9HomePageState extends State<V9HomePage>
+    with WidgetsBindingObserver {
   int _tab = 0; // 0 点名 1 统计 2 我的
+
+  V9Palette get c => V9ThemeScope.of(context);
 
   static const List<({IconData icon, String label})> _tabs = [
     (icon: Icons.radio_button_checked, label: '点名'),
@@ -62,19 +76,41 @@ class _V9HomePageState extends State<V9HomePage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ThemeController.I.load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    // DartSDK 3.x：WidgetsBinding 上的便捷 getter 已移除，走 FlutterView
+    final view = WidgetsBinding.instance.platformDispatcher;
+    ThemeController.I.setSystemDark(
+        view.platformBrightness == Brightness.dark);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light, // 暗底白字状态栏
+      value: c.dark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: V9G.bgFlat(true),
+        backgroundColor: V9G.bgFlat(c.dark),
         body: IndexedStack(index: _tab, children: _views),
         bottomNavigationBar: _buildPillBar(),
       ),
     );
   }
 
-  /// 悬浮胶囊底栏（降级实色版：surfNavSolid 实底 + 渐变选中指示）
-  /// 鸿蒙对照：ptab 悬浮胶囊 + V9G.tab(dark) 渐变指示
+  /// 悬浮胶囊底栏（实色降级 + 渐变选中指示）
   Widget _buildPillBar() {
     return SafeArea(
       top: false,
@@ -82,9 +118,9 @@ class _V9HomePageState extends State<V9HomePage> {
         margin: const EdgeInsets.fromLTRB(48, 0, 48, 16),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          color: V9Dark.surfNavSolid,
+          color: c.surfNavSolid,
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: V9Dark.bdSoft),
+          border: Border.all(color: c.bdSoft),
         ),
         child: Row(
           children: [
@@ -107,24 +143,20 @@ class _V9HomePageState extends State<V9HomePage> {
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          gradient: selected
-              ? LinearGradient(colors: V9G.tabColors(true))
-              : null,
+          gradient: selected ? LinearGradient(colors: V9G.tabColors(c.dark)) : null,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(t.icon,
-                size: 20,
-                color: selected ? Colors.white : V9Dark.ink45),
+            Icon(t.icon, size: 20, color: selected ? Colors.white : c.ink45),
             const SizedBox(height: 2),
             Text(
               t.label,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? Colors.white : V9Dark.ink45,
+                color: selected ? Colors.white : c.ink45,
               ),
             ),
           ],
@@ -133,5 +165,3 @@ class _V9HomePageState extends State<V9HomePage> {
     );
   }
 }
-
-// ── 占位视图已全部实装完毕（点名/统计/我的 → lib/views/）──
