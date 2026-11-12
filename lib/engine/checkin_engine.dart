@@ -267,6 +267,11 @@ class CheckInEngine extends ChangeNotifier {
     return fixed;
   }
 
+  /// 装载/批量操作后的手动刷新广播。
+  /// 鸿蒙 v28.11 同构语义：三视图保活 ⇒ 装载完成时其他视图读的还是挂载时旧数据，
+  /// 必须由数据完成点显式广播（MeView/StatsView 的 ListenableBuilder 靠它刷新）。
+  void notifyRefresh() => notifyListeners();
+
   /// M1 种子数据（化名示例班，纪律：真实学生名单严禁入库）
   void seedDemo() {
     if (students.isNotEmpty) return;

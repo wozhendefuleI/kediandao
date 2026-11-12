@@ -72,6 +72,7 @@ class _CheckinViewState extends State<CheckinView> {
     // M2 启动链：先装载存档（失败/不存在→种子数据兜底），纪律2：装载不阻塞 UI
     Store.I.load(eng).then((loaded) {
       if (!loaded) eng.seedDemo();
+      eng.notifyRefresh(); // v28.11 同构：保活视图（我的/统计）靠此广播拿到装载数据
       if (mounted) setState(() {});
     });
   }

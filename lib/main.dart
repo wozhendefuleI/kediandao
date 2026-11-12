@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'theme/v9_tokens.dart';
 import 'version.dart' show kVersionMark;
 import 'views/checkin_view.dart';
+import 'views/me_view.dart';
 
 /// 版本标记对质串（纪律7：模拟器看到 = 已实装）— 单源已迁至 lib/version.dart
 
@@ -56,7 +57,7 @@ class _V9HomePageState extends State<V9HomePage> {
   final List<Widget> _views = const [
     CheckinView(),
     _StatsView(),
-    _MeView(),
+    MeView(),
   ];
 
   @override
@@ -142,18 +143,6 @@ class _StatsView extends StatelessWidget {
     return _PlaceholderPage(
       title: '统计',
       hint: 'M1-⑤ 待实现：本月统计 / 记录详情',
-    );
-  }
-}
-
-class _MeView extends StatelessWidget {
-  const _MeView();
-
-  @override
-  Widget build(BuildContext context) {
-    return _PlaceholderPage(
-      title: '我的',
-      hint: 'M1-④ 待实现：班级切换 / 数据管理 / 外观',
     );
   }
 }
