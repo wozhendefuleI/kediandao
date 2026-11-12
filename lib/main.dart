@@ -4,6 +4,7 @@ import 'theme/v9_tokens.dart';
 import 'version.dart' show kVersionMark;
 import 'views/checkin_view.dart';
 import 'views/me_view.dart';
+import 'views/stats_view.dart';
 
 /// 版本标记对质串（纪律7：模拟器看到 = 已实装）— 单源已迁至 lib/version.dart
 
@@ -56,7 +57,7 @@ class _V9HomePageState extends State<V9HomePage> {
   /// 三视图保活（对齐 V9Home IndexedStack 语义）
   final List<Widget> _views = const [
     CheckinView(),
-    _StatsView(),
+    StatsView(),
     MeView(),
   ];
 
@@ -133,73 +134,4 @@ class _V9HomePageState extends State<V9HomePage> {
   }
 }
 
-// ── M1 占位视图（统计/我的；点名页已实装 lib/views/checkin_view.dart）──
-
-class _StatsView extends StatelessWidget {
-  const _StatsView();
-
-  @override
-  Widget build(BuildContext context) {
-    return _PlaceholderPage(
-      title: '统计',
-      hint: 'M1-⑤ 待实现：本月统计 / 记录详情',
-    );
-  }
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  final String title;
-  final String hint;
-  const _PlaceholderPage({required this.title, required this.hint});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: V9Dark.ink)),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: V9Dark.tint,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(kVersionMark,
-                      style:
-                          TextStyle(fontSize: 11, color: V9Dark.ink60)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: V9Dark.surfCardSolid, // 降级实色卡片
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: V9Dark.bdSoft),
-                ),
-                child: Text(hint,
-                    style: const TextStyle(
-                        fontSize: 13, color: V9Dark.ink45, height: 1.6)),
-              ),
-            ),
-            const SizedBox(height: 88), // 给胶囊底栏让位
-          ],
-        ),
-      ),
-    );
-  }
-}
+// ── 占位视图已全部实装完毕（点名/统计/我的 → lib/views/）──

@@ -10,9 +10,9 @@ void main() {
     expect(find.text('点名'), findsWidgets);
     expect(find.textContaining('android-dev M'), findsOneWidget);
 
-    // 切到「我的」（Tab 栏的项 = 最后一个匹配，占位页标题在前）
+    // 切到「我的」（Tab 栏的项 = 最后一个匹配；页面标题同名在前）
     await tester.tap(find.text('我的').last);
     await tester.pumpAndSettle();
-    expect(find.textContaining('M1-④'), findsOneWidget);
+    expect(find.textContaining('数据管理'), findsOneWidget);
   });
 }
