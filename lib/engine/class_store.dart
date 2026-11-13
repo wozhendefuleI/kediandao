@@ -5,6 +5,7 @@
 // ══════════════════════════════════════════════════════════════
 
 import 'dart:convert';
+import 'app_log.dart';
 import 'checkin_engine.dart';
 import 'store.dart';
 
@@ -35,6 +36,7 @@ class ClassStore {
   /// 启动装载：识别 v3 多班结构；识别不了则尝试 v2 迁移；都没有返回 false
   Future<bool> loadAll() async {
     final text = await Store.I.loadRaw();
+    AppLog.log('装载', '存档读取 ${text == null ? "（空）" : "${text.length} 字符"}');
     if (text == null) return false;
     try {
       final payload = jsonDecode(text);
@@ -108,6 +110,7 @@ class ClassStore {
     promote(entry.eng);
     currentClassId = id;
     await persistAll();
+    AppLog.log('切班', '→ ${entry.name}（${entry.eng.students.length} 人）');
     if (fixed > 0) CheckInEngine.I.notifyRefresh();
   }
 

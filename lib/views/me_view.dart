@@ -10,6 +10,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import '../engine/app_log.dart';
 import '../engine/checkin_engine.dart';
 import '../engine/class_store.dart';
 import '../engine/store.dart';
@@ -65,6 +66,17 @@ class _MeViewState extends State<MeView> {
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 3),
     ));
+  }
+
+  /// 导出运行日志（对齐鸿蒙 handleExportLog：AppLog.exportText → txt）
+  Future<void> _exportLog() async {
+    try {
+      final f = File('${(await _exportDir()).path}/运行日志_${_stamp()}.txt');
+      await f.writeAsString(AppLog.exportText(), flush: true);
+      _toast('已导出：${f.path.split('/').last}');
+    } catch (_) {
+      _toast('导出失败');
+    }
   }
 
   Future<Directory> _exportDir() async {
@@ -858,6 +870,10 @@ class _MeViewState extends State<MeView> {
                     icon: Icons.upload_file,
                     label: '导入课时表（Excel / CSV）',
                     onTap: () => _importRoster()),
+                _MenuItem(
+                    icon: Icons.receipt_long,
+                    label: '导出日志（运行日志 txt）',
+                    onTap: _exportLog),
                 _MenuItem(
                   icon: Icons.restore,
                   label: _snapshots.isEmpty

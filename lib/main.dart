@@ -80,6 +80,11 @@ class _V9HomePageState extends State<V9HomePage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ThemeController.I.load();
+    // ⭐跟随系统修复：didChangePlatformBrightness 只在「变化时」触发，
+    //   启动时必须显式读一次系统亮度（否则 _systemDark 停留默认值，system 模式不生效）
+    ThemeController.I.setSystemDark(
+        WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+            Brightness.dark);
   }
 
   @override
