@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import '../engine/checkin_engine.dart';
+import '../engine/class_store.dart';
 import '../engine/store.dart';
 import '../engine/xlsx_kit.dart';
 import '../theme/v9_tokens.dart';
@@ -77,6 +78,260 @@ class _MeViewState extends State<MeView> {
     final n = DateTime.now();
     String two(int v) => v.toString().padLeft(2, '0');
     return '${n.year}${two(n.month)}${two(n.day)}_${two(n.hour)}${two(n.minute)}';
+  }
+
+  // ═══ 班级管理（鸿蒙 ClassManagePage 语义直译）═══
+
+  /// 班级管理弹窗：列表 + 当前班标记 + 新建/重命名/删除
+  Future<void> _showClassManager() async {
+    final cs = ClassStore.I;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        final c = V9ThemeScope.of(ctx);
+        return StatefulBuilder(
+          builder: (ctx, setD) => AlertDialog(
+            backgroundColor: c.surfCardSolid,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('班级管理',
+                style: TextStyle(
+                    color: V9Dark.ink, fontWeight: FontWeight.w700)),
+            content: SizedBox(
+              width: 300,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                for (final entry in cs.classes)
+                  InkWell(
+                    onTap: entry.id == cs.currentClassId
+                        ? null
+                        : () async {
+                            await cs.switchClass(entry.id);
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            _toast('已切换到「${entry.name}」');
+                          },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 8),
+                      margin: const EdgeInsets.only(bottom: 6),
+                      decoration: BoxDecoration(
+                        color: entry.id == cs.currentClassId
+                            ? c.tint
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(children: [
+                        Icon(
+                          entry.id == cs.currentClassId
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
+                          size: 16,
+                          color: entry.id == cs.currentClassId
+                              ? c.act2
+                              : c.ink45,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(entry.name,
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: c.ink)),
+                                Text(
+                                    '${entry.studentCount} 名学生 · ${entry.recordCount} 条记录',
+                                    style: TextStyle(
+                                        fontSize: 11, color: c.ink45)),
+                              ]),
+                        ),
+                        // 行内动作：重命名 / 删除（当前班才可重命名同步内存态）
+                        GestureDetector(
+                          onTap: () => _renameClass(ctx, entry, setD),
+                          child: Icon(Icons.edit_outlined,
+                              size: 18, color: c.ink45),
+                        ),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: () => _deleteClassFlow(ctx, entry, setD),
+                          child: Icon(Icons.delete_outline,
+                              size: 18, color: c.warn),
+                        ),
+                      ]),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _newClass(ctx, setD),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('新建班级'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: c.act2,
+                    side: BorderSide(color: c.saveBd),
+                  ),
+                ),
+              ]),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('关闭',
+                    style: TextStyle(color: V9Dark.ink45)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _newClass(dynamic ctx, dynamic setD) async {
+    final nameCtl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        title: const Text('新建班级'),
+        content: TextField(
+          controller: nameCtl,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: '班级名称'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dlgCtx),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Navigator.pop(dlgCtx, nameCtl.text.trim()),
+              child: const Text('创建')),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+    await ClassStore.I.createClass(name);
+    if (!mounted) return;
+    Navigator.pop(context); // 关管理弹窗（已切到新班）
+    _toast('已创建「$name」');
+  }
+
+  Future<void> _renameClass(
+      dynamic mgrCtx, dynamic entry, dynamic setD) async {
+    final nameCtl = TextEditingController(text: entry.name);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        title: const Text('重命名班级'),
+        content: TextField(
+          controller: nameCtl,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: '新名称'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dlgCtx),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Navigator.pop(dlgCtx, nameCtl.text.trim()),
+              child: const Text('确定')),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+    await ClassStore.I.renameClass(entry.id, name);
+    if (!context.mounted) return;
+    setD(() {}); // 刷新管理弹窗列表
+    _toast('已重命名为「$name」');
+  }
+
+  /// 删除班级确认（两步：警示 → 输入固定文案「确定删除」解锁永久删除；对齐鸿蒙三重确认语义）
+  Future<void> _deleteClassFlow(
+      dynamic mgrCtx, dynamic entry, dynamic setD) async {
+    // 第一步：警示
+    final step1 = await showDialog<bool>(
+      context: context,
+      builder: (dlgCtx) {
+        final c = V9ThemeScope.of(dlgCtx);
+        return AlertDialog(
+          backgroundColor: c.surfCardSolid,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('删除班级',
+              style:
+                  TextStyle(color: V9Dark.warn, fontWeight: FontWeight.w700)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(
+                '「${entry.name}」· ${entry.studentCount} 名学生 · ${entry.recordCount} 条打卡记录',
+                style: TextStyle(fontSize: 12, color: c.ink45)),
+            const SizedBox(height: 12),
+            Text('删除后数据不可恢复。继续吗？',
+                style: TextStyle(fontSize: 13, color: c.ink)),
+          ]),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dlgCtx, false),
+              child: const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dlgCtx, true),
+              style: FilledButton.styleFrom(backgroundColor: c.warn),
+              child: const Text('继续'),
+            ),
+          ],
+        );
+      },
+    );
+    if (step1 != true) return;
+    if (!mounted) return;
+    // 第二步：输入固定文案解锁删除
+    final textCtl = TextEditingController();
+    final finalOk = await showDialog<bool>(
+      context: context,
+      builder: (dlgCtx) {
+        final c = V9ThemeScope.of(dlgCtx);
+        return StatefulBuilder(
+          builder: (dlgCtx, setV) => AlertDialog(
+            backgroundColor: c.surfCardSolid,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Text('最后确认',
+                style:
+                    TextStyle(color: V9Dark.warn, fontWeight: FontWeight.w700)),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('请输入「确定删除」以解锁删除按钮',
+                  style: TextStyle(fontSize: 13, color: c.ink)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: textCtl,
+                autofocus: true,
+                onChanged: (_) => setV(() {}),
+                decoration: const InputDecoration(hintText: '输入：确定删除'),
+              ),
+            ]),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dlgCtx, false),
+                child:
+                    const Text('取消', style: TextStyle(color: V9Dark.ink45)),
+              ),
+              FilledButton(
+                onPressed: textCtl.text.trim() == '确定删除'
+                    ? () => Navigator.pop(dlgCtx, true)
+                    : null,
+                style: FilledButton.styleFrom(backgroundColor: V9Dark.warn),
+                child: const Text('永久删除'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (finalOk != true) return;
+    if (!mounted) return;
+    final name = entry.name;
+    await ClassStore.I.deleteClass(entry.id);
+    if (!mounted) return;
+    setD(() {});
+    _toast('已删除「$name」');
   }
 
   // ── 外观三模式（对齐鸿蒙 MeView 外观弹窗：跟随系统/浅色/深色 + 勾选圈）──
@@ -532,51 +787,58 @@ class _MeViewState extends State<MeView> {
   }
 
   Widget _classCard() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: c.surfCardSolid,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: c.bdSoft),
+    return GestureDetector(
+      onTap: _showClassManager,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: c.surfCardSolid,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: c.bdSoft),
+        ),
+        child: Row(children: [
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: c.avatarBg,
+            ),
+            child: Text(
+              eng.className.isEmpty ? '班' : eng.className.substring(0, 1),
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: c.act2),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Text(eng.className,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: c.ink)),
+                  const SizedBox(width: 6),
+                  Icon(Icons.chevron_right, size: 18, color: c.ink45),
+                ]),
+                const SizedBox(height: 4),
+                Text(
+                  '${eng.students.length} 名学生 · ${eng.records.length} 条打卡记录\n点击管理班级（${ClassStore.I.classes.length} 个班）',
+                  style:
+                      TextStyle(fontSize: 13, color: c.ink45, height: 1.5),
+                ),
+              ],
+            ),
+          ),
+        ]),
       ),
-      child: Row(children: [
-        Container(
-          width: 52,
-          height: 52,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: c.avatarBg,
-          ),
-          child: Text(
-            eng.className.isEmpty ? '班' : eng.className.substring(0, 1),
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: c.act2),
-          ),
-        ),
-        SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(eng.className,
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: c.ink)),
-              SizedBox(height: 4),
-              Text(
-                '${eng.students.length} 名学生 · ${eng.records.length} 条打卡记录',
-                style:
-                    TextStyle(fontSize: 13, color: c.ink45),
-              ),
-            ],
-          ),
-        ),
-      ]),
     );
   }
 
@@ -624,14 +886,17 @@ class _MeViewState extends State<MeView> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: c.bdSoft),
       ),
-      child: ListTile(
-        onTap: _showThemeSheet,
-        leading: Icon(Icons.palette_outlined, size: 22, color: c.ink),
-        title: Text('外观',
-            style: TextStyle(
-                fontSize: 14, color: c.ink, fontWeight: FontWeight.w500)),
-        trailing: Text(label,
-            style: TextStyle(fontSize: 12, color: c.ink45)),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          onTap: _showThemeSheet,
+          leading: Icon(Icons.palette_outlined, size: 22, color: c.ink),
+          title: Text('外观',
+              style: TextStyle(
+                  fontSize: 14, color: c.ink, fontWeight: FontWeight.w500)),
+          trailing: Text(label,
+              style: TextStyle(fontSize: 12, color: c.ink45)),
+        ),
       ),
     );
   }

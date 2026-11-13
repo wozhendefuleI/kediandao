@@ -178,6 +178,24 @@ class Store {
   // ── 主题模式持久化（KEY_THEME_MODE 同构）──
   static const String _themeKey = 'theme_mode';
 
+  /// 原始存档读写（多班 v3 结构用；v2 结构由 Store 正常方法承载）
+  Future<String?> loadRaw() async {
+    try {
+      final f = File(await dataFilePath());
+      if (!f.existsSync()) return null;
+      return await f.readAsString();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveRaw(String text) async {
+    final path = await dataFilePath();
+    final tmp = '$path.tmp';
+    await File(tmp).writeAsString(text, flush: true);
+    await File(tmp).rename(path);
+  }
+
   Future<String?> loadThemeMode() async {
     try {
       final f = File('${await _dir()}/$_themeKey.txt');

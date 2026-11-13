@@ -61,7 +61,8 @@ class CheckInRecord {
 /// 引擎单例：绑定一个班级（M1 单班；多班/UUID 随 M2 班级表引入）
 class CheckInEngine extends ChangeNotifier {
   CheckInEngine._();
-  static final CheckInEngine I = CheckInEngine._();
+  /// 单例入口（多班体系：恒等当前班引擎实例；真身在文件顶层 currentEngine）
+  static CheckInEngine get I => currentEngine;
 
   String className = '示例班';
   final List<Student> students = [];
@@ -318,4 +319,37 @@ class CheckInEngine extends ChangeNotifier {
       addStudent(d.$1, '示例班', d.$2, d.$3, d.$4);
     }
   }
+}
+
+// ═══ 多班实例登记表（类外顶层，CheckInEngine 静态协作面）═══
+// 每班一个引擎实例；`I` 恒为当前班引擎（切班=promote 换血，视图监听不换对象）
+
+final Map<String, CheckInEngine> _engines = {};
+CheckInEngine _current = CheckInEngine._();
+
+/// 单例入口：恒等当前班引擎（多班 promote 换血不影响引用稳定性）
+// ignore: non_constant_identifier_names
+CheckInEngine get currentEngine => _current;
+
+/// 按班 id 取引擎（多班体系：每班独立实例）
+// ignore: non_constant_identifier_names
+CheckInEngine instanceFor(String classId) =>
+    _engines.putIfAbsent(classId, CheckInEngine._);
+
+/// 全新空白引擎（装载/建班用）
+// ignore: non_constant_identifier_names
+CheckInEngine blank() => CheckInEngine._();
+
+/// 切班换血：把目标班引擎内容同步进单例 I 并广播
+void promote(CheckInEngine eng) {
+  if (identical(eng, _current)) return;
+  _current.students
+    ..clear()
+    ..addAll(eng.students);
+  _current.records
+    ..clear()
+    ..addAll(eng.records);
+  _current.className = eng.className;
+  _current.studentIdCounter = eng.studentIdCounter;
+  _current.notifyRefresh(); // 公开广播入口（v28.11 同构）
 }

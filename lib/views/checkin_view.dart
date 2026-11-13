@@ -8,10 +8,12 @@
 // - 弹跳 420ms 移入已到的动效归 M3 打磨（本版直切）
 // ══════════════════════════════════════════════════════════════
 
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' show min;
 import '../engine/checkin_engine.dart';
+import '../engine/class_store.dart';
 import '../engine/store.dart';
 import '../theme/v9_tokens.dart';
 import '../theme/v9_palette.dart';
@@ -73,10 +75,20 @@ class _CheckinViewState extends State<CheckinView> {
   @override
   void initState() {
     super.initState();
-    // M2 启动链：先装载存档（失败/不存在→种子数据兜底），纪律2：装载不阻塞 UI
-    Store.I.load(eng).then((loaded) {
-      if (!loaded) eng.seedDemo();
-      eng.notifyRefresh(); // v28.11 同构：保活视图（我的/统计）靠此广播拿到装载数据
+    // M6 启动链：多班装载（v2 自动迁移；失败/无档→种子数据兜底）
+    ClassStore.I.loadAll().then((loaded) async {
+      if (!loaded) {
+        await ClassStore.I.migrateV2(jsonEncode(Store.encode(eng)));
+        if (ClassStore.I.classes.isEmpty) {
+          eng.seedDemo();
+          await ClassStore.I.persistAll();
+        } else {
+          ClassStore.I.switchClass(ClassStore.I.currentClassId);
+        }
+      } else {
+        ClassStore.I.switchClass(ClassStore.I.currentClassId);
+      }
+      eng.notifyRefresh(); // v28.11 同构：保活视图靠此广播拿到装载数据
       if (mounted) setState(() {});
     });
   }
