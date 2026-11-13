@@ -406,11 +406,24 @@ class _CheckinViewState extends State<CheckinView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(eng.className,
-              style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: c.ink)),
+          GestureDetector(
+            onTap: _showClassSwitcher, // 对齐鸿蒙：点班级名=开班级切换层
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(eng.className,
+                    style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: c.ink)),
+                Text('${eng.students.length} 人 · 切换',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: c.ink45)),
+              ],
+            ),
+          ),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -596,6 +609,85 @@ class _CheckinViewState extends State<CheckinView> {
         ),
       ],
     );
+  }
+
+  // ═══ 班级切换层（对齐鸿蒙 openClassExpander：各班行+今日进度副标题，点击即切）═══
+
+  Future<void> _showClassSwitcher() async {
+    final cs = ClassStore.I;
+    final accent = V9G.finishColors(c.dark).first;
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (dlgCtx) {
+        final cc = V9ThemeScope.of(dlgCtx);
+        return StatefulBuilder(
+          builder: (dlgCtx, setD) => AlertDialog(
+            backgroundColor: cc.surfCardSolid,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text('切换班级',
+                style: TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.bold,
+                    color: cc.ink)),
+            contentPadding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+            content: SizedBox(
+              width: 300,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final entry in cs.classes)
+                    ListTile(
+                      dense: true,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      // 当前班高亮 accent（对齐鸿蒙选中态）
+                      leading: Icon(
+                        entry.id == cs.currentClassId
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        size: 20,
+                        color: entry.id == cs.currentClassId ? accent : cc.ink45,
+                      ),
+                      title: Text(
+                        entry.name,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: entry.id == cs.currentClassId
+                                ? FontWeight.w700
+                                : FontWeight.w400,
+                            color: entry.id == cs.currentClassId
+                                ? accent
+                                : cc.ink),
+                      ),
+                      // 各班今日进度副标题（对齐鸿蒙 buildExpStats）
+                      subtitle: Text(
+                        '今日已到 ${_todayDone(entry.eng)} / ${entry.eng.students.length} 人',
+                        style:
+                            TextStyle(fontSize: 11, color: cc.ink60),
+                      ),
+                      onTap: () async {
+                        Navigator.pop(dlgCtx);
+                        if (entry.id != cs.currentClassId) {
+                          await cs.switchClass(entry.id);
+                          if (!mounted) return;
+                          setState(() {}); // 本视图立即跟随（promote 已广播保活视图）
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 某班今日已到人数（对齐鸿蒙 buildExpStats：按当日过滤）
+  int _todayDone(CheckInEngine e) {
+    final today = _dateStr;
+    return e.records.where((r) => r.date == today).length;
   }
 
   // ── 待到名单（学生卡：空心圈；点击即到）──

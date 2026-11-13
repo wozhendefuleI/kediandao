@@ -80,6 +80,103 @@ class _MeViewState extends State<MeView> {
     return '${n.year}${two(n.month)}${two(n.day)}_${two(n.hour)}${two(n.minute)}';
   }
 
+  // ═══ 赞助作者（对齐鸿蒙 SponsorDialog：hero 光晕圆 + 二维码容器强制纯白保扫码）═══
+
+  Future<void> _showSponsorDialog() async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (dlgCtx) {
+        final cc = V9ThemeScope.of(dlgCtx);
+        final accentPair = V9G.finishColors(cc.dark);
+        return AlertDialog(
+          backgroundColor: cc.surfCardSolid,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          contentPadding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // hero 光晕圆（96 光晕 + 64 渐变圆 + 咖）
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: cc.tint,
+                ),
+                alignment: Alignment.center,
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: accentPair,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text('咖',
+                      style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text('赞助作者',
+                  style: TextStyle(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.bold,
+                      color: cc.ink)),
+              const SizedBox(height: 14),
+              // 二维码 180px，容器强制纯白（深底扫码失败，不主题化）
+              Container(
+                width: 180,
+                height: 180,
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Image.asset('assets/images/sponsor_qrcode.png',
+                    fit: BoxFit.contain),
+              ),
+              const SizedBox(height: 14),
+              Text('如果课点到帮到了你，欢迎扫码支持一下\n一杯奶茶的钱，支持持续更新～',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10.5, color: cc.ink60, height: 1.5)),
+              const SizedBox(height: 8),
+              Text('仅限个人开发者自用，无任何强制消费',
+                  style: TextStyle(fontSize: 9, color: cc.ink45)),
+              const SizedBox(height: 16),
+              // 关闭按钮（渐变胶囊，对齐鸿蒙）
+              GestureDetector(
+                onTap: () => Navigator.pop(dlgCtx),
+                child: Container(
+                  width: double.infinity,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(19),
+                    gradient: LinearGradient(colors: accentPair),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text('关闭',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // ═══ 班级管理（鸿蒙 ClassManagePage 语义直译）═══
 
   /// 班级管理弹窗：列表 + 当前班标记 + 新建/重命名/删除
@@ -332,6 +429,32 @@ class _MeViewState extends State<MeView> {
     if (!mounted) return;
     setD(() {});
     _toast('已删除「$name」');
+  }
+
+  /// 赞助作者卡片（外观卡同构：ListTile 包 Material）
+  Widget _sponsorCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surfCardSolid,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.bdSoft),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          onTap: _showSponsorDialog,
+          leading: Icon(Icons.local_cafe_outlined, size: 22, color: c.ink),
+          title: Text('赞助作者',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: c.ink)),
+          subtitle: Text('如果觉得有帮助，请作者喝一杯咖啡吧',
+              style: TextStyle(fontSize: 11, color: c.ink45)),
+          trailing: Icon(Icons.chevron_right, size: 18, color: c.ink45),
+        ),
+      ),
+    );
   }
 
   // ── 外观三模式（对齐鸿蒙 MeView 外观弹窗：跟随系统/浅色/深色 + 勾选圈）──
@@ -755,6 +878,9 @@ class _MeViewState extends State<MeView> {
               _sectionTitle('外观'),
               _themeCard(),
               const SizedBox(height: 16),
+              _sectionTitle('支持'),
+              _sponsorCard(),
+              const SizedBox(height: 16),
               _sectionTitle('关于'),
               _aboutCard(),
             ],
@@ -920,7 +1046,7 @@ class _MeViewState extends State<MeView> {
                   color: c.ink)),
           const SizedBox(height: 6),
           Text(
-            '体育老师的班级点名 / 课时统计工具\n纯本机存储 · 无网络权限 · 无遥测\n开源版发布（MIT License）',
+            '老师的班级点名 / 课时统计工具\n纯本机存储 · 无网络权限 · 无遥测\n开源版发布（MIT License）',
             style: TextStyle(fontSize: 12, color: c.ink45, height: 1.7),
           ),
         ],

@@ -105,58 +105,58 @@ class _V9HomePageState extends State<V9HomePage>
       child: Scaffold(
         backgroundColor: V9G.bgFlat(c.dark),
         body: IndexedStack(index: _tab, children: _views),
-        bottomNavigationBar: _buildPillBar(),
+        bottomNavigationBar: _buildHdsBar(),
       ),
     );
   }
 
-  /// 悬浮胶囊底栏（实色降级 + 渐变选中指示）
-  Widget _buildPillBar() {
+  /// 底栏：对齐鸿蒙 HDS Tabs 官方语义——46vp 贴底通栏（非悬浮胶囊），
+  /// 浅色底(accent_light)+选中项 accent 着色，无渐变/无二级按钮。栏高固定 46。
+  Widget _buildHdsBar() {
     return SafeArea(
       top: false,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(48, 0, 48, 16),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        height: 46,
         decoration: BoxDecoration(
           color: c.surfNavSolid,
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: c.bdSoft),
+          border: Border(
+            top: BorderSide(color: c.bdSoft, width: 0.5),
+          ),
         ),
         child: Row(
           children: [
-            for (int i = 0; i < _tabs.length; i++)
-              Expanded(child: _buildTabItem(i)),
+            for (int i = 0; i < _tabs.length; i++) Expanded(child: _buildTabItem(i)),
           ],
         ),
       ),
     );
   }
 
+  /// HDS 风格 tab 项：icon 22 + label 10，选中=accent 色（不铺渐变底），
+  /// 未选中=ink45；点击态用 AnimatedContainer 平滑过渡颜色
   Widget _buildTabItem(int i) {
     final selected = _tab == i;
     final t = _tabs[i];
+    final accent = V9G.finishColors(c.dark).first; // HDS lightColor=accent_brand 同源
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => _tab = i),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          gradient: selected ? LinearGradient(colors: V9G.tabColors(c.dark)) : null,
-          borderRadius: BorderRadius.circular(24),
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(t.icon, size: 20, color: selected ? Colors.white : c.ink45),
-            const SizedBox(height: 2),
+            Icon(t.icon, size: 22, color: selected ? accent : c.ink45),
+            const SizedBox(height: 1),
             Text(
               t.label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? Colors.white : c.ink45,
+                color: selected ? accent : c.ink45,
               ),
             ),
           ],

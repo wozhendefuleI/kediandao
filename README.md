@@ -1,6 +1,6 @@
 # 课点到 · Android 版
 
-体育老师的班级点名 / 课时统计工具。鸿蒙版（[kediandao](https://gitee.com/woshizhendefule1001298/kediandao)）的 Android 移植，Flutter 重写。
+老师的班级点名 / 课时统计工具。鸿蒙版（[kediandao](https://gitee.com/woshizhendefule1001298/kediandao)）的 Android 移植，Flutter 重写。
 
 > 纯本机应用：**零网络权限、零遥测、零账号体系**，所有数据只存在你的手机上。
 
